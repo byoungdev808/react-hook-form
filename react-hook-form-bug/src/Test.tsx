@@ -1,18 +1,33 @@
-import { forwardRef, memo } from "react";
+import { forwardRef, memo, useState, useEffect } from "react";
 import {
   Control,
   Controller,
   useFieldArray,
   useFormContext,
+  useFormState,
 } from "react-hook-form";
+import logger from "./utils/logger";
+import { FormValues } from "./types";
+
+// Type the input props
+interface InputProps {
+  error?: string;
+  field: {
+    name: string;
+    onChange: (value: any) => void;
+    onBlur: () => void;
+    value: any;
+    ref: React.Ref<HTMLInputElement>;
+  };
+}
 
 const InputControlled = memo(
-  forwardRef(({ error, ...props }: any, ref) => {
-    console.log("InputControlled rerender");
+  forwardRef<HTMLInputElement, InputProps>(({ error, field, ...props }, ref) => {
+    logger.render(`InputControlled(${field.name})`);
 
     return (
       <div>
-        <input {...props} ref={ref} />
+        <input {...field} {...props} ref={ref} />
         {error && <span className="text-red-500">{error}</span>}
       </div>
     );
@@ -25,23 +40,35 @@ const ControllerInput = memo(
     index,
     name,
   }: {
-    control: Control<any>;
+    control: Control<FormValues>;
     index: number;
-    name: string;
+    name: keyof FormValues['array'][number];
   }) => {
-    console.log("ControllerInput rerender", index, name);
+    // This subscribes to specific field errors only
+    const { errors } = useFormState({
+      control,
+      name: `array.${index}.${name}` as const
+    });
+
+    logger.render(`ControllerInput(${name}-${index})`);
+    
     return (
-      <Controller
-        control={control}
-        name={`array.${index}.${name}`}
-        render={({ field, fieldState: { error } }) => (
-          <InputControlled
-            field={field}
-            ref={field.ref}
-            error={error?.message}
-          />
-        )}
-      />
+      <div>
+        <Controller<FormValues>
+          control={control}
+          name={`array.${index}.${name}` as const}
+          render={({ field }) => (
+            <InputControlled 
+              field={{
+                ...field,
+                value: field.value || ''
+              }} 
+              error={errors?.array?.[index]?.[name]?.message}
+              ref={field.ref} 
+            />
+          )}
+        />
+      </div>
     );
   }
 );
@@ -51,8 +78,8 @@ const ControllerInput = memo(
 });*/
 
 const Edit = memo(({ index }: { index: number }) => {
-  const { control } = useFormContext();
-  console.log("Edit rerender", index);
+  const { control } = useFormContext<FormValues>();
+  logger.render(`Edit(${index})`);
 
   return (
     <div>
@@ -64,12 +91,12 @@ const Edit = memo(({ index }: { index: number }) => {
 });
 
 const PageTest = memo(() => {
-  const { control } = useFormContext();
+  const { control } = useFormContext<FormValues>();
   console.log("rerender because useFormContext");
   return <Test control={control} />;
 });
 
-const Test = memo(({ control }: { control: Control<any> }) => {
+const Test = memo(({ control }: { control: Control<FormValues> }) => {
   const { fields, append, remove } = useFieldArray({
     control,
     name: "array",
@@ -96,17 +123,26 @@ const Test = memo(({ control }: { control: Control<any> }) => {
   );
 });
 
-const Fields = memo(({ fields, remove }: { fields: any; remove: any }) => {
+const Fields = memo(({ fields, remove }: { 
+  fields: Record<'id', string>[]; 
+  remove: (index: number) => void;
+}) => {
   return (
     <>
-      {fields.map((field: any, index: number) => (
+      {fields.map((field, index) => (
         <Field key={field.id} index={index} remove={remove} />
       ))}
     </>
   );
 });
 
-const Field = memo(({ index, remove }: { index: number; remove: any }) => {
+const Field = memo(({ 
+  index, 
+  remove 
+}: { 
+  index: number; 
+  remove: (index: number) => void;
+}) => {
   return (
     <fieldset>
       <Edit index={index} />
@@ -116,5 +152,6 @@ const Field = memo(({ index, remove }: { index: number; remove: any }) => {
     </fieldset>
   );
 });
+
 
 export default PageTest;

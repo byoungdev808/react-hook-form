@@ -1,32 +1,14 @@
-import { useCallback } from "react";
-import { FormProvider, useForm } from "react-hook-form";
-import PageTest from "./Test";
+import { ComparisonDemo } from './ComparisonDemo';
 
-const Page = () => {
-  const methods = useForm({
-    defaultValues: {
-      array: [],
-    },
-    shouldUnregister: true,
-  });
-  const { handleSubmit } = methods;
-
-  const onSubmit = useCallback((data: any) => {
-    console.log(data);
-  }, []);
-
-  console.log("rerender main form");
-
+const App = () => {
   return (
-    <FormProvider {...methods}>
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="space-y-8 py-4 relative"
-      >
-        <PageTest />
-      </form>
-    </FormProvider>
+    <div className="container mx-auto py-8">
+      <h1 className="text-2xl font-bold text-center mb-8">
+        React Hook Form Re-render Comparison
+      </h1>
+      <ComparisonDemo />
+    </div>
   );
 };
 
-export default Page;
+export default App;
